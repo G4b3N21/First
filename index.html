@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Zenei Jegyzet</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #f0e6d2;
+      font-family: -apple-system, sans-serif;
+      margin: 0;
+      padding: 40px 20px 20px 20px;
+    }
+    h1 { color: #d4af37; font-size: 24px; text-align: center; }
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      background-color: #d4af37;
+      color: #121212;
+      border: none;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .kartya {
+      background: #1e1e1e;
+      border-left: 4px solid #d4af37;
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
+    .kartya h3 { margin: 0 0 5px 0; color: #d4af37; font-size: 18px; }
+    .kartya p { margin: 0; font-size: 15px; line-height: 1.4; }
+    .torles {
+      background: none;
+      color: #888;
+      width: auto;
+      padding: 5px 0 0 0;
+      font-size: 12px;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎷 Kreatív Jegyzet</h1>
+  
+  <input type="text" id="cim" placeholder="Téma vagy hangszer (pl. Duduk + Trip-hop)">
+  <textarea id="szoveg" rows="3" placeholder="Ötlet, dalszöveg vagy hangulat..."></textarea>
+  <button onclick="mentes()">Mentés az appba</button>
+
+  <div id="lista"></div>
+
+  <script>
+    let jegyzetek = JSON.parse(localStorage.getItem('sajatJegyzetek')) || [];
+
+    function megjelenit() {
+      const lista = document.getElementById('lista');
+      lista.innerHTML = '';
+      jegyzetek.forEach((elem, index) => {
+        lista.innerHTML += `
+          <div class="kartya">
+            <h3>${elem.cim}</h3>
+            <p>${elem.szoveg}</p>
+            <button class="torles" onclick="torles(${index})">Törlés</button>
+          </div>
+        `;
+      });
+    }
+
+    function mentes() {
+      const cim = document.getElementById('cim').value;
+      const szoveg = document.getElementById('szoveg').value;
+      if (!cim && !szoveg) return;
+      
+      jegyzetek.unshift({ cim: cim || 'Névtelen ötlet', szoveg: szoveg });
+      localStorage.setItem('sajatJegyzetek', JSON.stringify(jegyzetek));
+      
+      document.getElementById('cim').value = '';
+      document.getElementById('szoveg').value = '';
+      megjelenit();
+    }
+
+    function torles(index) {
+      jegyzetek.splice(index, 1);
+      localStorage.setItem('sajatJegyzetek', JSON.stringify(jegyzetek));
+      megjelenit();
+    }
+
+    megjelenit();
+  </script>
+
+</body>
+</html>
