@@ -6,7 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zenei Jegyzet">
-  <link rel="apple-touch-icon" href="ikon.png">
+  <link rel="apple-touch-icon" href="ikon.png?v=2">
+  <link rel="icon" type="image/png" href="ikon.png?v=2">
   <title>Zenei Jegyzet</title>
   <style>
     body {
@@ -69,30 +70,6 @@
   <div id="lista"></div>
 
   <script>
-    // IDE ILLESZTHETED A SAJÁT SVG KÓDODAT A KÉT VISSZAPERJEL ('') KÖZÉ:
-    const sajatSvg = `<svg xmlns="http://w3.org" viewBox="0 0 512 512">
-      <rect width="512" height="512" fill="#121212"/>
-      <circle cx="256" cy="256" r="190" fill="none" stroke="#d4af37" stroke-width="24"/>
-      <path d="M290 140 v180 a45 45 0 1 1 -30 -42 v-138 l90 -25 v45 z" fill="#d4af37"/>
-    </svg>`;
-
-    // Ez a rész automatikusan PNG ikont gyárt az SVG-ből az iPhone számára:
-    (function ikontGeneral() {
-      const img = new Image();
-      const svgBlob = new Blob([sajatSvg], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, 512, 512);
-        document.getElementById('app-ikon').href = canvas.toDataURL('image/png');
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
-    })();
-
     let jegyzetek = JSON.parse(localStorage.getItem('sajatJegyzetek')) || [];
 
     function megjelenit() {
