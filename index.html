@@ -10,18 +10,20 @@
   <link rel="icon" type="image/jpeg" href="ikon.jpg" />
   <link rel="apple-touch-icon" href="ikon.jpg" />
   <style>
-    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --input:#0f172a; --text:#f8fafc; --muted:#94a3b8; --primary:#3b82f6; --win:#10b981; --loss:#ef4444; --gold:#f59e0b; }
+    :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --input:#0f172a; --text:#f8fafc; --muted:#94a3b8; --primary:#3b82f6; --win:#10b981; --loss:#ef4444; --gold:#f59e0b; --purple:#a855f7; }
     * { box-sizing:border-box; margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
     body { background:var(--bg); color:var(--text); padding-bottom:90px; }
     .container { max-width:600px; margin:0 auto; padding:14px; }
     header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-    .app-title { display:flex; align-items:center; gap:10px; font-size:1.2rem; font-weight:700; }
-    .app-title img { width:32px; height:32px; border-radius:8px; object-fit:cover; }
-    .backup-btns { display:flex; gap:6px; }
-    .btn-small { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer; }
+    .app-title { display:flex; align-items:center; gap:10px; }
+    .app-title img { width:38px; height:38px; border-radius:10px; object-fit:cover; border:1px solid var(--border); }
+    .title-text h1 { font-size:1.15rem; font-weight:800; line-height:1.1; }
+    .guild-subtitle { font-size:0.75rem; color:var(--gold); font-weight:700; letter-spacing:0.4px; margin-top:2px; }
+    .backup-btns { display:flex; gap:5px; }
+    .btn-small { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:6px 9px; border-radius:8px; font-size:0.72rem; font-weight:600; cursor:pointer; }
     .stats-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:12px; text-align:center; }
-    .stat-box span { display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; }
-    .stat-box strong { font-size:1.1rem; font-weight:700; }
+    .stat-box span { display:block; font-size:0.68rem; color:var(--muted); text-transform:uppercase; }
+    .stat-box strong { font-size:1.08rem; font-weight:700; }
     .stat-win { color:var(--win); }
     .search-box { position:relative; margin-bottom:10px; }
     .search-box input { width:100%; background:var(--card); border:1px solid var(--border); color:var(--text); padding:11px 36px 11px 14px; border-radius:10px; font-size:0.95rem; outline:none; }
@@ -29,11 +31,13 @@
     .filters { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:12px; }
     .filter-btn { background:var(--card); border:1px solid var(--border); color:var(--muted); padding:6px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; white-space:nowrap; cursor:pointer; }
     .filter-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .filter-btn.train-filter.active { background:var(--purple); border-color:var(--purple); color:#fff; }
     .battle-list { display:flex; flex-direction:column; gap:12px; }
     .battle-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; }
     .card-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:10px; font-size:0.8rem; }
     .meta-info { color:var(--muted); display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
     .guild-tag { color:var(--gold); font-weight:600; }
+    .train-pill { background:rgba(168,85,247,0.18); color:#d8b4fe; border:1px solid rgba(168,85,247,0.4); padding:1px 7px; border-radius:5px; font-size:0.7rem; font-weight:700; text-transform:uppercase; }
     .badge { padding:3px 9px; border-radius:6px; font-weight:800; font-size:0.75rem; }
     .badge.win { background:rgba(16,185,129,0.15); color:var(--win); border:1px solid rgba(16,185,129,0.3); }
     .badge.loss { background:rgba(239,68,68,0.15); color:var(--loss); border:1px solid rgba(239,68,68,0.3); }
@@ -63,8 +67,10 @@
     label { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:4px; font-weight:600; }
     input[type="text"], input[type="number"], input[type="date"] { width:100%; background:var(--input); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-size:0.92rem; outline:none; }
     .toggle-group { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .toggle-btn { background:var(--input); border:1px solid var(--border); color:var(--muted); padding:10px; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer; }
+    .toggle-group.three { grid-template-columns:1fr 1fr 1fr; }
+    .toggle-btn { background:var(--input); border:1px solid var(--border); color:var(--muted); padding:10px 6px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; }
     .toggle-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .toggle-btn.train-btn.active { background:var(--purple); border-color:var(--purple); color:#fff; }
     .toggle-btn.win-btn.active { background:var(--win); border-color:var(--win); color:#052e16; }
     .toggle-btn.loss-btn.active { background:var(--loss); border-color:var(--loss); color:#fff; }
     .team-section { background:rgba(15,23,42,0.5); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px; }
@@ -80,7 +86,10 @@
   <header>
     <div class="app-title">
       <img src="ikon.jpg" alt="Icon" onerror="this.style.display='none'" />
-      <span>War Battle Log</span>
+      <div class="title-text">
+        <h1>War Battle Log</h1>
+        <div class="guild-subtitle">⚔️ Chilligan's Tavern</div>
+      </div>
     </div>
     <div class="backup-btns">
       <button class="btn-small" onclick="exportCSV()">CSV</button>
@@ -90,7 +99,7 @@
     </div>
   </header>
   <div class="stats-bar">
-    <div class="stat-box"><span>Battles</span><strong id="statTotal">0</strong></div>
+    <div class="stat-box"><span id="statLabel">War Battles</span><strong id="statTotal">0</strong></div>
     <div class="stat-box"><span>Wins / Losses</span><strong id="statWL">0 / 0</strong></div>
     <div class="stat-box"><span>Win Rate</span><strong id="statRate" class="stat-win">0%</strong></div>
   </div>
@@ -102,6 +111,7 @@
     <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
     <button class="filter-btn" onclick="setFilter('Local War', this)">Local War</button>
     <button class="filter-btn" onclick="setFilter('Global War', this)">Global War</button>
+    <button class="filter-btn train-filter" onclick="setFilter('Training', this)">Training</button>
     <button class="filter-btn" onclick="setFilter('win', this)">Wins</button>
     <button class="filter-btn" onclick="setFilter('loss', this)">Losses</button>
   </div>
@@ -122,9 +132,10 @@
       </div>
       <div class="form-group">
         <label>War Type</label>
-        <div class="toggle-group">
+        <div class="toggle-group three">
           <button type="button" class="toggle-btn active" id="typeLocal" onclick="selectType('Local War')">Local War</button>
           <button type="button" class="toggle-btn" id="typeGlobal" onclick="selectType('Global War')">Global War</button>
+          <button type="button" class="toggle-btn train-btn" id="typeTrain" onclick="selectType('Training')">Training</button>
         </div>
       </div>
       <div class="team-section">
@@ -189,11 +200,11 @@
   function formatDisplayDate(d) {
     if (!d) return '';
     const p = d.split('-');
-    return p.length === 3 ? `${p}/${p}/${p}` : d;
+    return p.length === 3 ? p[1] + '/' + p[2] + '/' + p[0] : d;
   }
   function getTodayISO() {
     const now = new Date();
-    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T');
+    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
   }
   function escapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -228,18 +239,25 @@
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const listEl = document.getElementById('battleList');
     const filtered = battles.filter(b => {
-      if (currentFilter === 'Local War' && b.type !== 'Local War') return false;
-      if (currentFilter === 'Global War' && b.type !== 'Global War') return false;
-      if (currentFilter === 'win' && b.result !== 'win') return false;
-      if (currentFilter === 'loss' && b.result !== 'loss') return false;
+      if (currentFilter === 'Training') {
+        if (b.type !== 'Training') return false;
+      } else {
+        if (b.type === 'Training' && !q) return false;
+        if (currentFilter === 'Local War' && b.type !== 'Local War') return false;
+        if (currentFilter === 'Global War' && b.type !== 'Global War') return false;
+        if (currentFilter === 'win' && b.result !== 'win') return false;
+        if (currentFilter === 'loss' && b.result !== 'loss') return false;
+      }
       if (q) {
         const hay = [b.guild, b.myName, b.enemyName, ...(b.myHeroes||[]), ...(b.enemyHeroes||[])].join(' ').toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-    const total = filtered.length;
-    const wins = filtered.filter(b => b.result === 'win').length;
+    const statList = currentFilter === 'Training' ? filtered : filtered.filter(b => b.type !== 'Training');
+    const total = statList.length;
+    const wins = statList.filter(b => b.result === 'win').length;
+    document.getElementById('statLabel').textContent = currentFilter === 'Training' ? 'Training' : 'War Battles';
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statWL').textContent = `${wins} / ${total - wins}`;
     document.getElementById('statRate').textContent = `${total > 0 ? Math.round((wins / total) * 100) : 0}%`;
@@ -253,9 +271,10 @@
       const myH = (b.myHeroes||[]).filter(Boolean).map(h => `<li>${escapeHtml(h)}</li>`).join('');
       const enH = (b.enemyHeroes||[]).filter(Boolean).map(h => `<li>${escapeHtml(h)}</li>`).join('');
       const gTag = b.guild ? `<span>•</span><span class="guild-tag">vs. ${escapeHtml(b.guild)}</span>` : '';
+      const typeTag = b.type === 'Training' ? `<span class="train-pill">Training</span>` : `<span>${escapeHtml(b.type)}</span>`;
       return `<div class="battle-card">
         <div class="card-header">
-          <div class="meta-info"><span>${formatDisplayDate(b.date)}</span><span>•</span><span>${escapeHtml(b.type)}</span>${gTag}</div>
+          <div class="meta-info"><span>${formatDisplayDate(b.date)}</span><span>•</span>${typeTag}${gTag}</div>
           <span class="badge ${b.result}">${b.result.toUpperCase()}</span>
         </div>
         <div class="teams-grid">
@@ -277,6 +296,7 @@
     selectedType = t;
     document.getElementById('typeLocal').classList.toggle('active', t === 'Local War');
     document.getElementById('typeGlobal').classList.toggle('active', t === 'Global War');
+    document.getElementById('typeTrain').classList.toggle('active', t === 'Training');
   }
   function selectResult(r) {
     selectedResult = r;
@@ -312,7 +332,7 @@
   function closeModal() { document.getElementById('battleModal').classList.remove('open'); }
   function loadLastMyTeam() {
     if (!battles.length) { alert('No previous battles saved yet.'); return; }
-    const last = battles;
+    const last = battles[0];
     document.getElementById('myName').value = last.myName || '';
     document.getElementById('myPower').value = last.myPower || '';
     document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (last.myHeroes && last.myHeroes[i]) || '');
@@ -352,7 +372,7 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `war-battle-log-${getTodayISO()}.json`; a.click();
   }
   function importJSON(e) {
-    const f = e.target.files; if (!f) return;
+    const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
     r.onload = ev => {
       try {
