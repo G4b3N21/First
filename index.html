@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f172a" />
-  <title>War Battle Log</title>
+  <title>Gaben War</title>
   <link rel="icon" type="image/jpeg" href="ikon.jpg" />
   <link rel="apple-touch-icon" href="ikon.jpg" />
   <style>
@@ -65,7 +65,11 @@
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
     .form-group { margin-bottom:12px; }
     label { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:4px; font-weight:600; }
-    input[type="text"], input[type="number"], input[type="date"] { width:100%; background:var(--input); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-size:0.92rem; outline:none; }
+    input[type="text"], input[type="number"], input[type="date"], select { width:100%; background:var(--input); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-size:0.9rem; outline:none; }
+    .preset-bar { display:flex; gap:6px; margin-bottom:10px; }
+    .preset-bar select { padding:7px 8px; font-size:0.82rem; flex:1; }
+    .preset-save { background:rgba(59,130,246,0.2); color:#93c5fd; border:1px solid rgba(59,130,246,0.4); padding:0 10px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .preset-del { background:rgba(239,68,68,0.15); color:var(--loss); border:1px solid rgba(239,68,68,0.3); padding:0 9px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; }
     .toggle-group { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .toggle-group.three { grid-template-columns:1fr 1fr 1fr; }
     .toggle-btn { background:var(--input); border:1px solid var(--border); color:var(--muted); padding:10px 6px; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer; }
@@ -74,7 +78,7 @@
     .toggle-btn.win-btn.active { background:var(--win); border-color:var(--win); color:#052e16; }
     .toggle-btn.loss-btn.active { background:var(--loss); border-color:var(--loss); color:#fff; }
     .team-section { background:rgba(15,23,42,0.5); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:12px; }
-    .team-section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .team-section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
     .team-section-header h3 { font-size:0.92rem; color:var(--primary); }
     .team-section.enemy h3 { color:#f472b6; }
     .heroes-inputs { display:grid; grid-template-columns:1fr; gap:6px; }
@@ -87,7 +91,7 @@
     <div class="app-title">
       <img src="ikon.jpg" alt="Icon" onerror="this.style.display='none'" />
       <div class="title-text">
-        <h1>War Battle Log</h1>
+        <h1>Gaben War</h1>
         <div class="guild-subtitle">⚔️ Chilligan's Tavern</div>
       </div>
     </div>
@@ -141,7 +145,14 @@
       <div class="team-section">
         <div class="team-section-header">
           <h3>My Team (Attack)</h3>
-          <button type="button" class="btn-small" onclick="loadLastMyTeam()">Load Last Team</button>
+          <button type="button" class="btn-small" onclick="loadLastMyTeam()">Load Last</button>
+        </div>
+        <div class="preset-bar">
+          <select id="presetSelect" onchange="applyPreset()">
+            <option value="">-- Load Saved Team --</option>
+          </select>
+          <button type="button" class="preset-save" onclick="savePreset()">+ Save</button>
+          <button type="button" class="preset-del" onclick="deletePreset()" title="Delete selected preset">✕</button>
         </div>
         <div class="form-row">
           <div><label>My Name</label><input type="text" id="myName" placeholder="Gaben" required /></div>
@@ -187,7 +198,9 @@
 <script>
   const STORAGE_KEY = 'war_battle_log_v1';
   const PROFILE_KEY = 'war_battle_profile_v1';
+  const PRESETS_KEY = 'war_battle_presets_v1';
   let battles = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let presets = JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]');
   let currentFilter = 'all';
   let selectedType = 'Local War';
   let selectedResult = 'win';
@@ -197,14 +210,63 @@
     updateDatalists();
     renderBattles();
   }
+  function savePresetsStorage() {
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+    renderPresetsDropdown();
+  }
+  function renderPresetsDropdown(selectedIdx = '') {
+    const sel = document.getElementById('presetSelect');
+    sel.innerHTML = `<option value="">-- Load Saved Team (${presets.length}) --</option>` +
+      presets.map((p, i) => `<option value="${i}">${escapeHtml(p.name)} (${escapeHtml(p.power)}k)</option>`).join('');
+    sel.value = selectedIdx;
+  }
+  function savePreset() {
+    const heroes = Array.from(document.querySelectorAll('.my-hero')).map(i => i.value.trim());
+    const power = document.getElementById('myPower').value.trim();
+    const myName = document.getElementById('myName').value.trim();
+    if (!heroes.some(Boolean)) { alert('Enter at least one hero first.'); return; }
+    const defaultName = heroes.filter(Boolean).slice(0, 2).join('-');
+    const name = prompt('Team preset name (e.g. Main Team):', defaultName);
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    const existingIdx = presets.findIndex(p => p.name.toLowerCase() === cleanName.toLowerCase());
+    const obj = { name: cleanName, myName, power, heroes };
+    if (existingIdx !== -1) {
+      presets[existingIdx] = obj;
+      savePresetsStorage();
+      renderPresetsDropdown(String(existingIdx));
+    } else {
+      presets.push(obj);
+      savePresetsStorage();
+      renderPresetsDropdown(String(presets.length - 1));
+    }
+  }
+  function applyPreset() {
+    const idx = document.getElementById('presetSelect').value;
+    if (idx === '') return;
+    const p = presets[Number(idx)];
+    if (!p) return;
+    if (p.myName) document.getElementById('myName').value = p.myName;
+    if (p.power) document.getElementById('myPower').value = p.power;
+    document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (p.heroes && p.heroes[i]) || '');
+  }
+  function deletePreset() {
+    const idx = document.getElementById('presetSelect').value;
+    if (idx === '') { alert('Select a saved team from the dropdown first.'); return; }
+    const p = presets[Number(idx)];
+    if (p && confirm(`Delete preset "${p.name}"?`)) {
+      presets.splice(Number(idx), 1);
+      savePresetsStorage();
+    }
+  }
   function formatDisplayDate(d) {
     if (!d) return '';
     const p = d.split('-');
-    return p.length === 3 ? p[1] + '/' + p[2] + '/' + p[0] : d;
+    return p.length === 3 ? p + '/' + p + '/' + p : d;
   }
   function getTodayISO() {
     const now = new Date();
-    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T');
   }
   function escapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -216,6 +278,7 @@
       (b.myHeroes || []).forEach(h => { if (h) heroes.add(h.trim()); });
       (b.enemyHeroes || []).forEach(h => { if (h) heroes.add(h.trim()); });
     });
+    presets.forEach(p => (p.heroes || []).forEach(h => { if (h) heroes.add(h.trim()); }));
     document.getElementById('heroList').innerHTML = Array.from(heroes).sort().map(h => `<option value="${escapeHtml(h)}">`).join('');
     document.getElementById('guildList').innerHTML = Array.from(guilds).sort().map(g => `<option value="${escapeHtml(g)}">`).join('');
   }
@@ -305,6 +368,7 @@
   }
   function openModal(b = null) {
     document.getElementById('battleForm').reset();
+    renderPresetsDropdown();
     if (b) {
       document.getElementById('modalTitle').textContent = 'Edit Battle';
       document.getElementById('editId').value = b.id;
@@ -332,7 +396,7 @@
   function closeModal() { document.getElementById('battleModal').classList.remove('open'); }
   function loadLastMyTeam() {
     if (!battles.length) { alert('No previous battles saved yet.'); return; }
-    const last = battles[0];
+    const last = battles;
     document.getElementById('myName').value = last.myName || '';
     document.getElementById('myPower').value = last.myPower || '';
     document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (last.myHeroes && last.myHeroes[i]) || '');
@@ -368,16 +432,25 @@
   function editBattle(id) { const b = battles.find(x => x.id === id); if (b) openModal(b); }
   function deleteBattle(id) { if (confirm('Delete this battle log?')) { battles = battles.filter(x => x.id !== id); saveToStorage(); } }
   function exportJSON() {
-    const blob = new Blob([JSON.stringify(battles, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `war-battle-log-${getTodayISO()}.json`; a.click();
+    const payload = { battles, presets };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gaben-war-backup-${getTodayISO()}.json`; a.click();
   }
   function importJSON(e) {
-    const f = e.target.files[0]; if (!f) return;
+    const f = e.target.files; if (!f) return;
     const r = new FileReader();
     r.onload = ev => {
       try {
         const imp = JSON.parse(ev.target.result);
-        if (Array.isArray(imp) && confirm(`Import ${imp.length} battles? This replaces current list.`)) { battles = imp; saveToStorage(); }
+        if (Array.isArray(imp)) {
+          if (confirm(`Import ${imp.length} battles? This replaces current list.`)) { battles = imp; saveToStorage(); }
+        } else if (imp && Array.isArray(imp.battles)) {
+          if (confirm(`Import ${imp.battles.length} battles and ${(imp.presets||[]).length} presets?`)) {
+            battles = imp.battles;
+            if (Array.isArray(imp.presets)) { presets = imp.presets; savePresetsStorage(); }
+            saveToStorage();
+          }
+        }
       } catch { alert('Invalid backup file.'); }
       e.target.value = '';
     };
@@ -389,9 +462,9 @@
     const rows = battles.map(b => [formatDisplayDate(b.date), b.type, b.guild||'', b.myName, (b.myHeroes||[]).filter(Boolean).join(', '), `${b.myPower}k`, b.enemyName, (b.enemyHeroes||[]).filter(Boolean).join(', '), `${b.enemyPower}k`, b.result.toUpperCase()]);
     const csv = [h, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `war-battle-log-${getTodayISO()}.csv`; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gaben-war-${getTodayISO()}.csv`; a.click();
   }
-  updateDatalists(); renderBattles();
+  updateDatalists(); renderPresetsDropdown(); renderBattles();
 </script>
 </body>
 </html>
