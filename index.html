@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f172a" />
   <title>Gaben War</title>
@@ -12,8 +13,8 @@
   <style>
     :root { --bg:#0f172a; --card:#1e293b; --border:#334155; --input:#0f172a; --text:#f8fafc; --muted:#94a3b8; --primary:#3b82f6; --win:#10b981; --loss:#ef4444; --gold:#f59e0b; --purple:#a855f7; }
     * { box-sizing:border-box; margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-    body { background:var(--bg); color:var(--text); padding-bottom:90px; }
-    .container { max-width:600px; margin:0 auto; padding:14px; }
+    body { background:var(--bg); color:var(--text); padding-top:env(safe-area-inset-top, 16px); padding-bottom:95px; }
+    .container { max-width:600px; margin:0 auto; padding:16px 14px; }
     header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
     .app-title { display:flex; align-items:center; gap:10px; }
     .app-title img { width:38px; height:38px; border-radius:10px; object-fit:cover; border:1px solid var(--border); }
@@ -21,6 +22,7 @@
     .guild-subtitle { font-size:0.75rem; color:var(--gold); font-weight:700; letter-spacing:0.4px; margin-top:2px; }
     .backup-btns { display:flex; gap:5px; }
     .btn-small { background:var(--card); color:var(--muted); border:1px solid var(--border); padding:6px 9px; border-radius:8px; font-size:0.72rem; font-weight:600; cursor:pointer; }
+    .backup-banner { display:none; justify-content:space-between; align-items:center; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.45); color:#fde68a; padding:9px 12px; border-radius:10px; margin-bottom:12px; font-size:0.8rem; font-weight:600; cursor:pointer; }
     .stats-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:12px; text-align:center; }
     .stat-box span { display:block; font-size:0.68rem; color:var(--muted); text-transform:uppercase; }
     .stat-box strong { font-size:1.08rem; font-weight:700; }
@@ -57,7 +59,7 @@
     .action-btn.delete { color:var(--loss); border-color:rgba(239,68,68,0.3); }
     .empty-state { text-align:center; padding:40px 20px; color:var(--muted); font-size:0.95rem; }
     .fab { position:fixed; bottom:20px; right:20px; left:20px; max-width:560px; margin:0 auto; background:var(--primary); color:#fff; border:none; padding:14px; border-radius:14px; font-size:1rem; font-weight:700; box-shadow:0 10px 15px -3px rgba(37,99,235,0.4); cursor:pointer; z-index:10; }
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:flex-start; overflow-y:auto; padding:12px; z-index:50; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.82); display:none; justify-content:center; align-items:flex-start; overflow-y:auto; padding:calc(env(safe-area-inset-top, 12px) + 8px) 12px 12px; z-index:50; }
     .modal-overlay.open { display:flex; }
     .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; width:100%; max-width:560px; padding:16px; margin-bottom:30px; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -102,6 +104,12 @@
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)" />
     </div>
   </header>
+
+  <div class="backup-banner" id="backupBanner" onclick="exportJSON()">
+    <span>💾 Unsaved changes! Tap to save backup file</span>
+    <span>Export ›</span>
+  </div>
+
   <div class="stats-bar">
     <div class="stat-box"><span id="statLabel">War Battles</span><strong id="statTotal">0</strong></div>
     <div class="stat-box"><span>Wins / Losses</span><strong id="statWL">0 / 0</strong></div>
@@ -199,19 +207,92 @@
   const STORAGE_KEY = 'war_battle_log_v1';
   const PROFILE_KEY = 'war_battle_profile_v1';
   const PRESETS_KEY = 'war_battle_presets_v1';
+  const DIRTY_KEY = 'war_battle_dirty_count';
+  const DB_NAME = 'GabenWarVaultDB';
+  const STORE_NAME = 'kv_store';
+
   let battles = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   let presets = JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]');
+  let dirtyCount = Number(localStorage.getItem(DIRTY_KEY) || '0');
   let currentFilter = 'all';
   let selectedType = 'Local War';
   let selectedResult = 'win';
 
+  // Request Persistent Storage on iOS/Chrome
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
+  // Dual Storage (IndexedDB + localStorage self-healing)
+  function openVaultDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+  async function vaultSet(key, val) {
+    try {
+      const db = await openVaultDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(val, key);
+    } catch (e) {}
+  }
+  async function vaultGet(key) {
+    try {
+      const db = await openVaultDB();
+      return await new Promise(res => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const r = tx.objectStore(STORE_NAME).get(key);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(null);
+      });
+    } catch (e) { return null; }
+  }
+  async function syncFromVault() {
+    const vBattles = await vaultGet(STORAGE_KEY);
+    const vPresets = await vaultGet(PRESETS_KEY);
+    let restored = false;
+    if ((!battles || battles.length === 0) && Array.isArray(vBattles) && vBattles.length > 0) {
+      battles = vBattles;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(battles));
+      restored = true;
+    } else if (battles.length > 0) {
+      vaultSet(STORAGE_KEY, battles);
+    }
+    if ((!presets || presets.length === 0) && Array.isArray(vPresets) && vPresets.length > 0) {
+      presets = vPresets;
+      localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+      restored = true;
+    } else if (presets.length > 0) {
+      vaultSet(PRESETS_KEY, presets);
+    }
+    if (restored) {
+      updateDatalists();
+      renderPresetsDropdown();
+      renderBattles();
+    }
+  }
+
+  function updateBackupBanner() {
+    const banner = document.getElementById('backupBanner');
+    if (banner) banner.style.display = dirtyCount >= 5 ? 'flex' : 'none';
+  }
+  function markDirty() {
+    dirtyCount++;
+    localStorage.setItem(DIRTY_KEY, String(dirtyCount));
+    updateBackupBanner();
+  }
   function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(battles));
+    vaultSet(STORAGE_KEY, battles);
     updateDatalists();
     renderBattles();
   }
   function savePresetsStorage() {
     localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+    vaultSet(PRESETS_KEY, presets);
     renderPresetsDropdown();
   }
   function renderPresetsDropdown(selectedIdx = '') {
@@ -232,7 +313,7 @@
     const existingIdx = presets.findIndex(p => p.name.toLowerCase() === cleanName.toLowerCase());
     const obj = { name: cleanName, myName, power, heroes };
     if (existingIdx !== -1) {
-      presets[existingIdx] = obj;
+      presets.splice(existingIdx, 1, obj);
       savePresetsStorage();
       renderPresetsDropdown(String(existingIdx));
     } else {
@@ -240,20 +321,21 @@
       savePresetsStorage();
       renderPresetsDropdown(String(presets.length - 1));
     }
+    markDirty();
   }
   function applyPreset() {
     const idx = document.getElementById('presetSelect').value;
     if (idx === '') return;
-    const p = presets[Number(idx)];
+    const p = presets.at(Number(idx));
     if (!p) return;
     if (p.myName) document.getElementById('myName').value = p.myName;
     if (p.power) document.getElementById('myPower').value = p.power;
-    document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (p.heroes && p.heroes[i]) || '');
+    document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (p.heroes && p.heroes.at(i)) || '');
   }
   function deletePreset() {
     const idx = document.getElementById('presetSelect').value;
     if (idx === '') { alert('Select a saved team from the dropdown first.'); return; }
-    const p = presets[Number(idx)];
+    const p = presets.at(Number(idx));
     if (p && confirm(`Delete preset "${p.name}"?`)) {
       presets.splice(Number(idx), 1);
       savePresetsStorage();
@@ -262,11 +344,11 @@
   function formatDisplayDate(d) {
     if (!d) return '';
     const p = d.split('-');
-    return p.length === 3 ? p + '/' + p + '/' + p : d;
+    return p.length === 3 ? p.at(1) + '/' + p.at(2) + '/' + p.at(0) : d;
   }
   function getTodayISO() {
     const now = new Date();
-    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T');
+    return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T').at(0);
   }
   function escapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -378,10 +460,10 @@
       selectResult(b.result || 'win');
       document.getElementById('myName').value = b.myName || '';
       document.getElementById('myPower').value = b.myPower || '';
-      document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (b.myHeroes && b.myHeroes[i]) || '');
+      document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (b.myHeroes && b.myHeroes.at(i)) || '');
       document.getElementById('enemyName').value = b.enemyName || '';
       document.getElementById('enemyPower').value = b.enemyPower || '';
-      document.querySelectorAll('.enemy-hero').forEach((inp, i) => inp.value = (b.enemyHeroes && b.enemyHeroes[i]) || '');
+      document.querySelectorAll('.enemy-hero').forEach((inp, i) => inp.value = (b.enemyHeroes && b.enemyHeroes.at(i)) || '');
     } else {
       document.getElementById('modalTitle').textContent = 'New Battle';
       document.getElementById('editId').value = '';
@@ -396,10 +478,10 @@
   function closeModal() { document.getElementById('battleModal').classList.remove('open'); }
   function loadLastMyTeam() {
     if (!battles.length) { alert('No previous battles saved yet.'); return; }
-    const last = battles;
+    const last = battles.at(0);
     document.getElementById('myName').value = last.myName || '';
     document.getElementById('myPower').value = last.myPower || '';
-    document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (last.myHeroes && last.myHeroes[i]) || '');
+    document.querySelectorAll('.my-hero').forEach((inp, i) => inp.value = (last.myHeroes && last.myHeroes.at(i)) || '');
   }
   function saveBattle(e) {
     e.preventDefault();
@@ -421,12 +503,13 @@
     localStorage.setItem(PROFILE_KEY, JSON.stringify({ myName }));
     if (editId) {
       const idx = battles.findIndex(x => x.id === editId);
-      if (idx !== -1) battles[idx] = rec;
+      if (idx !== -1) battles.splice(idx, 1, rec);
     } else {
       battles.unshift(rec);
     }
     battles.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     saveToStorage();
+    markDirty();
     closeModal();
   }
   function editBattle(id) { const b = battles.find(x => x.id === id); if (b) openModal(b); }
@@ -435,9 +518,12 @@
     const payload = { battles, presets };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gaben-war-backup-${getTodayISO()}.json`; a.click();
+    dirtyCount = 0;
+    localStorage.setItem(DIRTY_KEY, '0');
+    updateBackupBanner();
   }
   function importJSON(e) {
-    const f = e.target.files; if (!f) return;
+    const f = e.target.files.item(0); if (!f) return;
     const r = new FileReader();
     r.onload = ev => {
       try {
@@ -464,7 +550,7 @@
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `gaben-war-${getTodayISO()}.csv`; a.click();
   }
-  updateDatalists(); renderPresetsDropdown(); renderBattles();
+  updateDatalists(); renderPresetsDropdown(); renderBattles(); updateBackupBanner(); syncFromVault();
 </script>
 </body>
 </html>
