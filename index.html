@@ -341,11 +341,12 @@
       savePresetsStorage();
     }
   }
-  function formatDisplayDate(d) {
+    function formatDisplayDate(d) {
     if (!d) return '';
     const p = d.split('-');
     return p.length === 3 ? p.at(1) + '/' + p.at(2) + '/' + p.at(0) : d;
   }
+
   function getTodayISO() {
     const now = new Date();
     return new Date(now - now.getTimezoneOffset() * 60000).toISOString().split('T').at(0);
